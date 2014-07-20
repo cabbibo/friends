@@ -3,6 +3,7 @@
 uniform vec3 lightPos;
 uniform sampler2D t_scene;
 uniform sampler2D t_normal;
+uniform sampler2D t_audio;
 uniform float  timer;
 uniform vec2 SS;
 
@@ -68,7 +69,9 @@ void main(){
 
   float uFM = uF * uF * uF * uF *uF*uF*uF;
 
-  vec3 fC = reflC *fr*fr*fr*100.+ vec3( .0, .3, 1. ) * fr;
+  vec3 aC = texture2D( t_audio , vec2( inverse_dot_view , 0. ) ).xyz;
+  vec3 aC2 = texture2D( t_audio , vec2( 1.-inverse_dot_view , 0. ) ).xyz;
+  vec3 fC = reflC *fr*5.* aC2+ vec3( .5, .9, 2. ) * fr * aC;
   gl_FragColor = vec4( fC ,  1.0 );
 
 

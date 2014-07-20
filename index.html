@@ -81,7 +81,7 @@
   var clock = new THREE.Clock();
 
   var audioController = new AudioController();
-  audioController.mute.gain.value = 0;
+  //audioController.mute.gain.value = 0;
 
   var stream = new Stream(  'audio/palette.mp3',audioController  );
 
@@ -126,6 +126,7 @@
 
   var timer = { type:"f" , value:0 }
   var dT = { type:"f" , value:0 }
+  var t_audio = { type:"t" , value:audioController.texture}
 
 
   var shaders = new ShaderLoader('shaders');
@@ -207,9 +208,10 @@
 
     w = window.innerWidth ;
     h = window.innerHeight;
-    var uniforms = {
+    uniforms = {
       t_scene:{ type:"t" , value: waterTexture },
       t_normal:{ type:"t" , value: waterNormal },
+      t_audio: t_audio,
       lightPos:{type:"v3" , value: new THREE.Vector3( 0 , 300 , -400 ) },
       SS:{ type:"v2", value: new THREE.Vector2( w*2 , h*2 ) },
       timer:timer,
@@ -302,8 +304,15 @@
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
+    waterCam.aspect = window.innerWidth / window.innerHeight;
+    waterCam.updateProjectionMatrix();
+
+
     renderer.setSize( window.innerWidth, window.innerHeight );
-    waterTexture.setSize( window.innerWidth, window.innerHeight );
+    //waterTexture.setSize( window.innerWidth, window.innerHeight );
+
+    uniforms.SS.value.x = window.innerWidth * 2;
+    uniforms.SS.value.y = window.innerHeight * 2;
 
 
   }
