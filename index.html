@@ -235,7 +235,7 @@
 
     scene.add( water );
 
-    var geo = new THREE.PlaneGeometry( 300 , 300 );//, 300 );
+    var geo = new THREE.PlaneGeometry( 200 , 200 );//, 300 );
 
     for( var i=0; i < FT.array.length; i++ ){
 
@@ -250,11 +250,24 @@
       var mesh = new THREE.Mesh( geo , mat );
 
       mesh.position.y = 300;
-      mesh.position.x = (((i+.5) / FT.array.length)-.5) * 2500
-
+      mesh.position.x = (((i+.5) / FT.array.length)-.5) * 2500;
       scene.add( mesh );
-
       FM.push( mesh );
+
+      var m2 = mesh.clone();
+      m2.scale.multiplyScalar( 1.4 );
+      m2.position.z = -80+ Math.random();
+      scene.add( m2 );
+      FM.push( m2 );
+
+
+      var m3 = m2.clone();
+      m3.scale.multiplyScalar( 1.4 );
+      m3.position.z = -160+ Math.random();
+      scene.add( m3 );
+      FM.push( m3 );
+
+
 
     }
 
