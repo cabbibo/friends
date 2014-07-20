@@ -1,0 +1,364 @@
+<html>
+
+<head>
+  <style>
+
+    @font-face {
+      font-family: "GeoSans";
+      src: url("lib/GeosansLight.ttf");
+    }
+    html{ color:#fff; background:#000; font-family:"GeoSans"; overflow:hidden }
+
+    #container{
+      width      : 100%;
+      height     : 100%;
+      position   : absolute;
+      top        : 0px;
+      left       : 0px;
+      background : #000;
+    }
+
+    #stats{
+      position  : absolute;
+      bottom    : 0px;
+      right     : 0px;
+      z-index   : 999;
+    }
+
+    a{
+      color: #fff;
+      position: absolute;
+      z-index: 999;
+    }
+
+    #loading{
+
+      width:100%;
+      text-align:center;
+      padding-top:100px;
+      font-size:25px;
+
+    }
+
+  </style>
+</head>
+<body>
+
+  <div id="loading">
+    <h1> THESE ARE MY FRIENDS </h1>
+    <p> @eddietree  ||  @akirodic || @rezaali || @robbietilton || @jonobr </p>
+    
+    <p>@Cabbibo</p>
+  
+  </div>
+
+<script src = "lib/underscore.js"           ></script>
+<script src = "lib/three.js"                ></script>
+<script src = "lib/jquery.min.js"           ></script>
+<script src = "lib/stats.min.js"            ></script>
+<script src = "lib/TrackballControls.js"    ></script>
+<script src = "lib/ShaderLoader.js"         ></script>
+<script src = "lib/OBJLoader.js"            ></script>
+<script src = "lib/Stream.js"               ></script>
+<script src = "lib/AudioController.js"      ></script>
+<script src = "lib/AudioTexture.js"         ></script>
+
+<script>
+
+  console.log('Loading');
+
+  var container , camera, scene, renderer , stats;
+
+  var sceneSize = 5000;
+
+  var handGeo;
+  var skullGeo;
+  var tendrilGeo;
+  var logoGeo;
+
+  var loaded = 0;
+  var neededToLoad = 7;
+
+  var clock = new THREE.Clock();
+
+  var audioController = new AudioController();
+  audioController.mute.gain.value = 0;
+
+  var stream = new Stream(  'audio/palette.mp3',audioController  );
+
+  var lT = THREE.ImageUtils.loadTexture;
+  var m = THREE.UVMapping;
+  var c = function(){ onLoad() };
+
+  var waterNormal = lT( 'img/normals/water.png' , m , c );
+  waterNormal.wrapS = THREE.RepeatWrapping; 
+  waterNormal.wrapT = THREE.RepeatWrapping;
+
+
+
+
+
+
+  // FRIEND TEXTURES
+  var FT = {};
+  FT.array = [];
+
+  FM = [];
+  var FT_files = [
+    'Robbie',
+    'Reza',
+    'Eddie',
+    'Aki',
+    'Jono'
+  ]
+
+
+  for( var i = 0; i < FT_files.length; i ++ ){
+
+    var f = FT_files[i];
+
+    var p = 'img/friends/'
+    FT[ f ] = lT( p + f + '.png' , m , c );
+
+    FT.array.push( FT[ f ] );
+
+  }
+
+
+  var timer = { type:"f" , value:0 }
+  var dT = { type:"f" , value:0 }
+
+
+  var shaders = new ShaderLoader('shaders');
+
+  shaders.load( 'fs-water' , 'water' , 'fragment' );
+  shaders.load( 'vs-water' , 'water' , 'vertex' );
+
+  shaders.shaderSetLoaded = function(){
+   onLoad();
+  }
+
+
+  function init(){
+
+
+    scene = new THREE.Scene();
+    
+    camera = new THREE.PerspectiveCamera( 
+      50 ,
+      window.innerWidth / window.innerHeight,
+      sceneSize / 100 ,
+      sceneSize * 4000
+    );
+
+    // placing our camera position so it can see everything
+    camera.position.z = 2000 ;
+    camera.position.y = 600;
+
+    camera.velocity = new THREE.Vector3();
+
+    controls = new THREE.TrackballControls( camera );
+
+    controls.noPan = true;
+    controls.noRoll = true;
+    controls.noRotate = true;
+
+    // Getting the container in the right location
+    container     = document.createElement( 'div' );
+    container.id  = 'container';
+    
+    document.body.appendChild( container );
+
+    // Getting the stats in the right position
+    stats = new Stats();
+    stats.domElement.id = 'stats';
+    document.body.appendChild( stats.domElement );
+
+
+    // Setting up our Renderer
+    renderer = new THREE.WebGLRenderer({ autoclear:false });
+
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    container.appendChild( renderer.domElement );
+
+
+    // Making sure our renderer is always the right size
+    window.addEventListener( 'resize', onWindowResize , false );
+
+
+  
+
+    var w = window.innerWidth ;
+    var h = window.innerHeight;
+    waterTexture = new THREE.WebGLRenderTarget( 2048 , 2048 );
+    
+    waterCam = camera.clone(); 
+    waterCam.position.copy( camera.position );
+
+    waterCam.position.y *= -1;
+    //waterCam.up.y = -1;
+
+    waterCam.scale.y *= -1;
+    waterCam.lookAt( new THREE.Vector3() );
+
+    scene.add( waterCam );
+
+
+    
+
+    w = window.innerWidth ;
+    h = window.innerHeight;
+    var uniforms = {
+      t_scene:{ type:"t" , value: waterTexture },
+      t_normal:{ type:"t" , value: waterNormal },
+      lightPos:{type:"v3" , value: new THREE.Vector3( 0 , 300 , -400 ) },
+      SS:{ type:"v2", value: new THREE.Vector2( w*2 , h*2 ) },
+      timer:timer,
+      normalScale:{type:"f",value:1.}
+  
+    }
+
+    var material = new THREE.ShaderMaterial({
+      uniforms: uniforms,
+      vertexShader: shaders.vertexShaders.water,
+      fragmentShader: shaders.fragmentShaders.water,
+
+
+    });
+    water = new THREE.Mesh(
+      new THREE.PlaneGeometry( 10000 , 10000 ),
+      material 
+    );
+
+    water.rotation.x = -Math.PI/2;
+
+    scene.add( water );
+
+    var geo = new THREE.PlaneGeometry( 300 , 300 );//, 300 );
+
+    for( var i=0; i < FT.array.length; i++ ){
+
+      var mat = new THREE.MeshBasicMaterial({
+        map:FT.array[i],
+        transparent:true,
+        side: THREE.DoubleSide,
+        //depthwrite:false,
+       // blending:THREE.AdditiveBlending
+      });
+
+      var mesh = new THREE.Mesh( geo , mat );
+
+      mesh.position.y = 300;
+      mesh.position.x = (((i+.5) / FT.array.length)-.5) * 2500
+
+      scene.add( mesh );
+
+      FM.push( mesh );
+
+    }
+
+
+  }
+
+
+  function animate(){
+
+    audioController.update();
+
+    dT.value = clock.getDelta();
+    timer.value += dT.value;
+
+    stats.update();
+
+    controls.update();
+
+    var t = timer.value;
+
+    for( var i= 0; i < FM.length; i++ ){
+
+      var dir = (i % 2) -.5;
+      //FM[i].rotation.x += Math.sin( (i+1) * t * .05) * .01;
+      //FM[i].rotation.y += Math.sin( (i+1) * t * .1) * .01;
+      FM[i].rotation.z += Math.cos( (i+1) * t * .07) * .01 * dir;
+
+    }
+ 
+
+    waterCam.position.copy( camera.position );
+    waterCam.position.y *= -1;
+    waterCam.lookAt( new THREE.Vector3() );
+
+    water.visible = false;
+    renderer.render( scene , waterCam  , waterTexture , true);
+    water.visible = true;
+    renderer.render( scene , camera );
+
+    requestAnimationFrame( animate );
+
+  }
+
+  // Resets the renderer to be the proper size
+  function onWindowResize(){
+
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    waterTexture.setSize( window.innerWidth, window.innerHeight );
+
+
+  }
+
+
+  function onLoad(){
+
+
+    loaded ++;
+
+    console.log(loaded );
+    if( loaded === neededToLoad ){
+
+      init();
+      animate();
+      stream.play();
+
+    }
+
+  }
+
+
+  function createParticleGeo(numOf){
+
+    var geometry = new THREE.BufferGeometry();
+
+    var numOf = numOf || 100;
+    geometry.addAttribute( 'position', new Float32Array( numOf * 3 ), 3 );
+    var positions = geometry.getAttribute( 'position' ).array;
+    
+    for( var i = 0; i < numOf; i++ ){
+
+     // for( var j = 0; j < 64; j++ ){
+
+       var index = i * 3;
+       var x =( ((i+.5)/ numOf ) - .5 ) * 4000;
+
+      positions[ index + 0 ]  = x
+      positions[ index + 1 ]  = 0;
+      positions[ index + 2 ]  = 0;
+
+
+
+     // }
+
+    }
+
+    return geometry;
+
+
+
+  }
+</script>
+
+
+</body>
+</html>
