@@ -46,10 +46,6 @@
 
   <div id="loading">
     <h1> THESE ARE MY FRIENDS </h1>
-    <p> @eddietree  ||  @akirodic || @rezaali || @robbietilton || @jonobr </p>
-    
-    <p>@Cabbibo</p>
-  
   </div>
 
 <script src = "lib/underscore.js"           ></script>
@@ -57,10 +53,13 @@
 <script src = "lib/jquery.min.js"           ></script>
 <script src = "lib/stats.min.js"            ></script>
 <script src = "lib/TrackballControls.js"    ></script>
+<script src = "lib/TextCreator.js"    ></script>
 <script src = "lib/ShaderLoader.js"         ></script>
 <script src = "lib/Stream.js"               ></script>
 <script src = "lib/AudioController.js"      ></script>
 <script src = "lib/AudioTexture.js"         ></script>
+<script src = "lib/ObjectControls.js"       ></script>
+<script src = "lib/leap.js"             ></script>
 
 <script>
 
@@ -94,7 +93,7 @@
   waterNormal.wrapT = THREE.RepeatWrapping;
 
 
-
+  var controller = new Leap.Controller();
 
 
 
@@ -111,6 +110,21 @@
     'Jono'
   ]
 
+  var urls = [
+    'http://robbietilton.com/',
+    'http://www.syedrezaali.com/',
+    'http://illogictree.com/blog/home/',
+    'http://aleksandarrodic.com/',
+    'http://jonobr1.com/'
+  ]
+
+  var descriptions = [
+    '@robbietilton',
+    '@rezaali',
+    '@eddietree',
+    '@akirodic',
+    '@jonobr'
+  ]
 
   for( var i = 0; i < FT_files.length; i ++ ){
 
@@ -118,6 +132,9 @@
 
     var p = 'img/friends/'
     FT[ f ] = lT( p + f + '.png' , m , c );
+
+    FT[ f ].name  = f;
+    FT[ f ].url   = urls[i];
 
     FT.array.push( FT[ f ] );
 
@@ -141,6 +158,7 @@
 
   function init(){
 
+    createText();
 
     scene = new THREE.Scene();
     
@@ -154,14 +172,14 @@
     // placing our camera position so it can see everything
     camera.position.z = 2000 ;
     camera.position.y = 600;
+    camera.lookAt( new THREE.Vector3() );
 
-    camera.velocity = new THREE.Vector3();
 
-    controls = new THREE.TrackballControls( camera );
+  /*  controls = new THREE.TrackballControls( camera );
 
     controls.noPan = true;
     controls.noRoll = true;
-    controls.noRotate = true;
+    controls.noRotate = true; */
 
     // Getting the container in the right location
     container     = document.createElement( 'div' );
@@ -186,6 +204,8 @@
     window.addEventListener( 'resize', onWindowResize , false );
 
 
+    var obj = new THREE.Object3D();
+    objectControls = new ObjectControls( camera , obj , controller );
   
 
     var w = window.innerWidth ;
@@ -247,18 +267,76 @@
        // blending:THREE.AdditiveBlending
       });
 
-      var mesh = new THREE.Mesh( geo , mat );
+      var hoverOver = function(){
 
-      mesh.position.y = 300;
-      mesh.position.x = (((i+.5) / FT.array.length)-.5) * 2500;
-      scene.add( mesh );
-      FM.push( mesh );
+        this.textMesh.material.opacity = 1;
+        this.active = true;
+        this.handleMesh.visible = true;
 
-      var m2 = mesh.clone();
+
+      }
+
+      var hoverOut = function(){
+
+        this.handleMesh.visible = false;
+        this.textMesh.material.opacity = .3;
+        this.active = false;
+
+      }
+
+      var select = function(){
+
+        console.log('YA');
+        window.open( this.url ,'_blank');
+
+      }
+
+
+    
+      var x = (((i+.5) / FT.array.length)-.5) * 2500;
+      var y = 300;
+
+      FT.array[i].textMesh.position.x = x;
+      FT.array[i].textMesh.position.y = y+400;
+      scene.add( FT.array[i].textMesh );
+  
+      scene.add( FT.array[i].handleMesh );
+
+       FT.array[i].handleMesh.visible = false;
+
+
+      var m1 = new THREE.Mesh( geo , mat );
+
+      m1.position.y = y;
+      m1.position.x = x;
+      scene.add( m1 );
+      FM.push( m1 );
+
+      m1.hoverOver = hoverOver.bind( m1 );
+      m1.hoverOut = hoverOut.bind( m1 );
+      m1.select = select.bind( m1 );
+      m1.meshGroup = FT.array[i].name;
+      m1.url = FT.array[i].url;
+      m1.textMesh = FT.array[i].textMesh;
+      m1.handleMesh = FT.array[i].handleMesh;
+
+      objectControls.add( m1 );
+
+      var m2 = m1.clone();
       m2.scale.multiplyScalar( 1.4 );
       m2.position.z = -80+ Math.random();
       scene.add( m2 );
       FM.push( m2 );
+      
+      m2.hoverOver = hoverOver.bind( m2 );
+      m2.hoverOut = hoverOut.bind( m2 );
+      m2.select = select.bind( m2 );
+      m2.meshGroup = FT.array[i].name;
+      m2.url = FT.array[i].url;
+      m2.textMesh = FT.array[i].textMesh;
+      m2.handleMesh = FT.array[i].handleMesh;
+
+      objectControls.add( m2 );
 
 
       var m3 = m2.clone();
@@ -266,6 +344,18 @@
       m3.position.z = -160+ Math.random();
       scene.add( m3 );
       FM.push( m3 );
+
+      m3.hoverOver = hoverOver.bind( m3 );
+      m3.hoverOut = hoverOut.bind( m3 );
+      m3.select = select.bind( m3 );
+      m3.meshGroup = FT.array[i].name;
+      m3.url = FT.array[i].url;
+      m3.textMesh = FT.array[i].textMesh;
+      m3.handleMesh = FT.array[i].handleMesh;
+      objectControls.add( m3 );
+
+
+
 
 
 
@@ -277,6 +367,7 @@
 
   function animate(){
 
+    objectControls.update();
     audioController.update();
 
     dT.value = clock.getDelta();
@@ -284,7 +375,7 @@
 
     stats.update();
 
-    controls.update();
+    //controls.update();
 
     var t = timer.value;
 
@@ -348,6 +439,33 @@
   }
 
 
+  function createText(){
+
+    var textCreator = new TextCreator();
+
+    for( var i = 0;  i < FT.array.length; i++ ){
+
+      var text = textCreator.createMesh( FT.array[i].name );
+      FT.array[ i ].textMesh = text;
+
+
+      var text = textCreator.createMesh( descriptions[i] );
+      text.material.opacity = .3;
+     // text.material.visible = false;
+      text.material.side = THREE.DoubleSide;
+      text.material.blending = THREE.AdditiveBlending;
+      text.materialNeedsUpdate = true;
+
+      text.scale.multiplyScalar( 2 );
+
+      text.position.y = 100;
+      text.position.z = 700;
+      text.rotation.x = - Math.PI / 3;
+      FT.array[ i ].handleMesh = text;
+
+    }
+
+  }
   function createParticleGeo(numOf){
 
     var geometry = new THREE.BufferGeometry();
@@ -374,7 +492,6 @@
     }
 
     return geometry;
-
 
 
   }
